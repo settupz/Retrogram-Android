@@ -59,6 +59,7 @@ public class NekoSettingsActivity extends BaseNekoSettingsActivity {
     ));
 
     private int categoriesRow;
+    private int pluginsRow;
     private int generalRow;
     private int accountRow;
     private int chatRow;
@@ -82,6 +83,62 @@ public class NekoSettingsActivity extends BaseNekoSettingsActivity {
     private int resetSettingsRow;
     private int settings2Row;
 
+    private File getRetrogramPluginsDir() {
+        File dir = new File(ApplicationLoader.getFilesDirFixed(), "plugins");
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        return dir;
+    }
+
+    private void showRetrogramPluginsDialog() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        SharedPreferences prefs = ApplicationLoader.applicationContext.getSharedPreferences("retrogram_plugins", Activity.MODE_PRIVATE);
+        boolean engineEnabled = prefs.getBoolean("engine_enabled", true);
+        File pluginsDir = getRetrogramPluginsDir();
+        File[] files = pluginsDir.listFiles(f -> f.isFile() && (
+                f.getName().endsWith(".plugin") ||
+                f.getName().endsWith(".js") ||
+                f.getName().endsWith(".py") ||
+                f.getName().endsWith(".lua") ||
+                f.getName().endsWith(".dex") ||
+                f.getName().endsWith(".json")
+        ));
+
+        ArrayList<String> items = new ArrayList<>();
+        items.add((engineEnabled ? "[Вкл] " : "[Выкл] ") + "Движок плагинов Retrogram");
+        if (files != null && files.length > 0) {
+            for (File f : files) {
+                boolean pEnabled = prefs.getBoolean("plugin_" + f.getName(), true);
+                items.add((pEnabled ? "[Вкл] " : "[Выкл] ") + f.getName());
+            }
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+        builder.setTitle("Retrogram — Поддержка плагинов");
+        if (files == null || files.length == 0) {
+            builder.setMessage("Движок плагинов: " + (engineEnabled ? "Включён" : "Выключен") +
+                    "\n\nУстановленных плагинов нет.\nПапка для плагинов:\n" + pluginsDir.getAbsolutePath());
+            builder.setNeutralButton(engineEnabled ? "Выключить движок" : "Включить движок", (d, w) -> {
+                prefs.edit().putBoolean("engine_enabled", !engineEnabled).apply();
+            });
+        } else {
+            builder.setItems(items.toArray(new CharSequence[0]), (d, which) -> {
+                if (which == 0) {
+                    prefs.edit().putBoolean("engine_enabled", !engineEnabled).apply();
+                } else {
+                    File target = files[which - 1];
+                    String key = "plugin_" + target.getName();
+                    prefs.edit().putBoolean(key, !prefs.getBoolean(key, true)).apply();
+                }
+            });
+        }
+        builder.setPositiveButton(LocaleController.getString(R.string.OK), null);
+        showDialog(builder.create());
+    }
+
     @Override
     public View createView(Context context) {
         View fragmentView = super.createView(context);
@@ -95,7 +152,9 @@ public class NekoSettingsActivity extends BaseNekoSettingsActivity {
 
     @Override
     protected void onItemClick(View view, int position, float x, float y) {
-        if (position == generalRow) {
+        if (position == pluginsRow) {
+            showRetrogramPluginsDialog();
+        } else if (position == generalRow) {
             presentFragment(new NekoGeneralSettingsActivity());
         } else if (position == accountRow) {
             presentFragment(new NekoAccountSettingsActivity());
@@ -112,7 +171,7 @@ public class NekoSettingsActivity extends BaseNekoSettingsActivity {
         } else if (position == channelTipsRow) {
             getMessagesController().openByUserName(channelUsernameTips, this, 1);
         } else if (position == sourceCodeRow) {
-            Browser.openUrl(getParentActivity(), "https://github.com/NextAlone/Nagram");
+            Browser.openUrl(getParentActivity(), "https://github.com/settupz/Retrogram-Android");
         } else if (position == translationRow) {
             Browser.openUrl(getParentActivity(), "https://xtaolabs.crowdin.com/nagram");
         } else if (position == datacenterRow) {
@@ -159,6 +218,7 @@ public class NekoSettingsActivity extends BaseNekoSettingsActivity {
         super.updateRows();
 
         categoriesRow = addRow("categories");
+        pluginsRow = addRow("plugins");
         generalRow = addRow("general");
         accountRow = addRow("account");
         chatRow = addRow("chat");
@@ -232,7 +292,9 @@ public class NekoSettingsActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_TEXT: {
                     TextCell textCell = (TextCell) holder.itemView;
-                    if (position == generalRow) {
+                    if (position == pluginsRow) {
+                        textCell.setTextAndIcon("Поддержка плагинов (Plugins)", R.drawable.msg_settings, divider);
+                    } else if (position == generalRow) {
                         textCell.setTextAndIcon(LocaleController.getString(R.string.General), R.drawable.msg_media, divider);
                     } else if (position == accountRow) {
                         textCell.setTextAndIcon(LocaleController.getString(R.string.Account), R.drawable.msg_contacts, divider);
