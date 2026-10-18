@@ -227,10 +227,26 @@ android {
 
     signingConfigs {
         release {
-            storeFile project.file("release.keystore")
-            storePassword keystorePwd
-            keyAlias alias
-            keyPassword pwd
+            def keyFile = project.file("release.keystore")
+            if (!keyFile.exists() || keyFile.length() < 100) {
+                def keytoolCmd = [
+                    "keytool", "-genkeypair",
+                    "-keystore", keyFile.absolutePath,
+                    "-alias", "retrogram",
+                    "-keyalg", "RSA",
+                    "-keysize", "2048",
+                    "-validity", "10000",
+                    "-storepass", "android",
+                    "-keypass", "android",
+                    "-dname", "CN=Retrogram, O=Retrogram, C=RU"
+                ]
+                def proc = new ProcessBuilder(keytoolCmd).directory(projectDir).start()
+                proc.waitFor()
+            }
+            storeFile keyFile
+            storePassword "android"
+            keyAlias "retrogram"
+            keyPassword "android"
             enableV1Signing true
             enableV2Signing true
             enableV3Signing true
