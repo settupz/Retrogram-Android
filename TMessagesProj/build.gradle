@@ -85,9 +85,9 @@ if (properties != null) {
     nagram_build_args = properties.getProperty("NAGRAM_BUILD_ARGS", nagram_build_args)
 }
 
-keystorePwd = keystorePwd ?: System.getenv("KEYSTORE_PASS")
-alias = alias ?: System.getenv("ALIAS_NAME")
-pwd = pwd ?: System.getenv("ALIAS_PASS")
+keystorePwd = keystorePwd ?: System.getenv("KEYSTORE_PASS") ?: (project.hasProperty("RELEASE_STORE_PASSWORD") ? project.property("RELEASE_STORE_PASSWORD") : "android")
+alias = alias ?: System.getenv("ALIAS_NAME") ?: (project.hasProperty("RELEASE_KEY_ALIAS") ? project.property("RELEASE_KEY_ALIAS") : "androidkey")
+pwd = pwd ?: System.getenv("ALIAS_PASS") ?: (project.hasProperty("RELEASE_KEY_PASSWORD") ? project.property("RELEASE_KEY_PASSWORD") : "android")
 
 def sentry_upload = sentry_token != null && !sentry_token.isEmpty()
 
